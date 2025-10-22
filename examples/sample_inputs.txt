@@ -1,0 +1,14 @@
+## Scientific Paper Excerpt
+"The study measured an average temperature increase of 2.3°C with p<0.05 significance across 150 sampling sites."
+
+## Elder Wisdom Excerpt  
+"Our ancestors taught that when the kōwhai flowers early, the winter will be mild and the fishing plentiful."
+
+## Personal Experience
+"In my 20 years of farming, I've noticed the crops grow better after a lightning storm."
+
+## Ritual Knowledge
+"According to our ceremonial practice, the planting must begin after the first thunder of spring."
+
+## Technical Measurement  
+"The water quality sensor detected nitrate levels of 45 mg/L, exceeding the safe threshold."

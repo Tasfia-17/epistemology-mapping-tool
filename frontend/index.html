@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Epistemology Mapping Tool</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --poline-1: #0a0e27;
+            --poline-2: #1a1f3a;
+            --poline-3: #2d3561;
+            --poline-4: #455d8f;
+            --poline-5: #6b8caf;
+            --poline-6: #98b9d1;
+            --poline-7: #c9e4f5;
+            --poline-8: #f0f8ff;
+
+            --accent-blue: #3b82f6;
+            --accent-amber: #f59e0b;
+            --accent-pink: #ec4899;
+            --accent-purple: #8b5cf6;
+            --accent-cyan: #06b6d4;
+            --accent-emerald: #10b981;
+            --accent-indigo: #a855f7;
+            --accent-teal: #14b8a6;
+            --accent-slate: #64748b;
+
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+            --transition: 300ms cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--poline-1);
+            color: var(--poline-8);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background:
+                radial-gradient(circle at 20% 50%, rgba(139, 92, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+                radial-gradient(circle at 40% 90%, rgba(20, 184, 166, 0.05) 0%, transparent 50%);
+            z-index: -1;
+            animation: gradientShift 15s ease infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        .container {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .header {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 2rem 3rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--glass-shadow);
+        }
+
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            color: var(--poline-6);
+            font-size: 1.1rem;
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: 400px 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (max-width: 1200px) {
+            .workspace {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .glass-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: var(--glass-shadow);
+            transition: transform var(--transition), box-shadow var(--transition);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .card-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .floating-textarea {
+            width: 100%;
+            min-height: 180px;
+            background: var(--poline-2);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 1.5rem;
+            color: var(--poline-8);
+            font-family: inherit;
+            font-size: 0.95rem;
+            resize: vertical;
+            transition: var(--transition);
+            outline: none;
+        }
+
+        .floating-textarea:focus {
+            border-color: var(--accent-purple);
+            background: var(--poline-3);
+        }
+
+        .floating-textarea::placeholder {
+            color: var(--poline-5);
+            opacity: 0.7;
+        }
+
+        .char-counter {
+            position: absolute;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            font-size: 0.75rem;
+            color: var(--poline-5);
+        }
+
+        .btn {
+            padding: 0.875rem 1.5rem;
+            border: none;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-blue));
+            color: white;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .btn-secondary {
+            background: var(--poline-3);
+            color: var(--poline-7);
+            border: 1px solid var(--glass-border);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+        }
+
+        .upload-zone {
+            padding: 2rem;
+            border: 2px dashed var(--glass-border);
+            border-radius: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: var(--transition);
+            background: var(--poline-2);
+        }
+
+        .upload-zone:hover {
+            border-color: var(--accent-cyan);
+            background: var(--poline-3);
+        }
+
+        .example-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .example-pill {
+            padding: 0.5rem 1rem;
+            background: var(--poline-3);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            font-size: 0.85rem;
+            color: var(--poline-6);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .example-pill:hover {
+            background: var(--accent-purple);
+            color: white;
+            border-color: var(--accent-purple);
+        }
+
+        #galaxy-canvas {
+            width: 100%;
+            height: 600px;
+            background: radial-gradient(circle, var(--poline-2), var(--poline-1));
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .legend {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            background: var(--poline-3);
+            border-radius: 8px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--accent-purple);
+            border-radius: 12px;
+            padding: 1rem;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 200ms;
+            max-width: 320px;
+            z-index: 1000;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .tooltip.active {
+            opacity: 1;
+        }
+
+        .tooltip-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-title {
+            color: var(--accent-purple);
+            font-weight: 600;
+        }
+
+        .tooltip-text {
+            color: var(--poline-6);
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tooltip-confidence {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: rgba(139, 92, 246, 0.2);
+            border-radius: 12px;
+            color: var(--accent-purple);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-purple), var(--accent-cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--poline-6);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 1rem; }
+            .header { padding: 1.5rem; }
+            h1 { font-size: 2rem; }
+            #galaxy-canvas { height: 400px; }
+            .workspace { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1>🌌 Epistemology Mapper</h1>
+            <p class="subtitle">Revealing how knowledge is validated across cultures</p>
+        </header>
+
+        <div class="workspace">
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-icon">📝</div>
+                    <h2 class="card-title">Input Knowledge</h2>
+                </div>
+                <div style="position: relative;">
+                    <textarea id="textInput" class="floating-textarea" placeholder="Enter text to analyze... Example: 'River flow averaged 3.2 m³/s' or 'Elders say the river sings when eels are fat.'"></textarea>
+                    <span class="char-counter" id="charCounter">0 / 5000</span>
+                </div>
+                <div class="button-group">
+                    <button class="btn btn-primary" id="analyzeBtn">🔍 Analyze</button>
+                    <button class="btn btn-secondary" id="clearBtn">🗑️ Clear</button>
+                </div>
+                <div class="upload-zone" id="uploadZone">
+                    <div>🎤 Drop or click to upload audio</div>
+                    <div style="font-size: 0.8rem; color: var(--poline-5); margin-top: 0.5rem;">Supports WAV, MP3, M4A</div>
+                </div>
+                <input type="file" id="audioFile" accept="audio/*" style="display: none;">
+                <div class="examples-label" style="margin-top: 1.5rem; color: var(--poline-6); font-size: 0.85rem; font-weight: 600;">Quick Examples</div>
+                <div class="example-pills">
+                    <span class="example-pill" data-type="scientific">📊 Scientific</span>
+                    <span class="example-pill" data-type="indigenous">🌿 Indigenous</span>
+                    <span class="example-pill" data-type="personal">👤 Personal</span>
+                    <span class="example-pill" data-type="ritual">🔥 Ritual</span>
+                    <span class="example-pill" data-type="tech">🔬 Technical</span>
+                    <span class="example-pill" data-type="ecological">🌍 Ecological</span>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="card-header">
+                    <div class="card-icon">🌌</div>
+                    <h2 class="card-title">Knowledge Galaxy</h2>
+                </div>
+                <div id="galaxy-canvas"></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-blue);"></div>
+                        <span>Empirical-Quantitative</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-amber);"></div>
+                        <span>Oral-Intergenerational</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-pink);"></div>
+                        <span>Ritual-Ceremonial</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-purple);"></div>
+                        <span>Experiential-Personal</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-cyan);"></div>
+                        <span>Technological-Instrumental</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-emerald);"></div>
+                        <span>Ecological-Relational</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-indigo);"></div>
+                        <span>Historical-Documentary</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: var(--accent-teal);"></div>
+                        <span>Philosophical-Deductive</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="totalNodes">0</div>
+                <div class="stat-label">Total Analyses</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avgConfidence">0%</div>
+                <div class="stat-label">Avg Confidence</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="dominantType">—</div>
+                <div class="stat-label">Dominant Type</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="processingTime">0ms</div>
+                <div class="stat-label">Last Response</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip">
+        <div class="tooltip-header">
+            <div class="tooltip-color" id="tooltipColor"></div>
+            <div class="tooltip-title" id="tooltipTitle"></div>
+        </div>
+        <div class="tooltip-text" id="tooltipText"></div>
+        <div class="tooltip-text" id="tooltipExplanation"></div>
+        <div class="tooltip-confidence" id="tooltipConfidence"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8000';
+        const EPISTEMOLOGY_COLORS = {
+            'Empirical-Quantitative': '#3b82f6',
+            'Oral-Intergenerational': '#f59e0b',
+            'Ritual-Ceremonial': '#ec4899',
+            'Experiential-Personal': '#8b5cf6',
+            'Technological-Instrumental': '#06b6d4',
+            'Ecological-Relational': '#10b981',
+            'Historical-Documentary': '#a855f7',
+            'Philosophical-Deductive': '#14b8a6',
+            'Intuitive-Inspirational': '#06b6d4',
+            'Theological-Doctrinal': '#f59e0b',
+            'Artistic-Expressive': '#ec4899',
+            'Legal-Precedential': '#64748b'
+        };
+
+        const EXAMPLES = {
+            scientific: "The experimental study measured mean temperature increase of 2.3°C (SD=0.4, n=150) with statistical significance p<0.001.",
+            indigenous: "Our elders have observed for generations that when the kōwhai tree flowers early in spring, it signals a mild winter ahead.",
+            personal: "In my 25 years of farming this land, I have consistently observed that crops grow better after lightning storms.",
+            ritual: "According to sacred ritual, the ceremony must be conducted when the Seven Sisters constellation rises at dawn.",
+            tech: "The remote sensing satellite detected infrared anomalies using thermal imaging sensors at 10:30 UTC.",
+            ecological: "The ecosystem demonstrates interconnected relationships where the web of life creates symbiotic balance."
+        };
+
+        let nodesData = [];
+        let linksData = [];
+        let simulation, svg, g, width, height;
+
+        const textInput = document.getElementById('textInput');
+        const charCounter = document.getElementById('charCounter');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const uploadZone = document.getElementById('uploadZone');
+        const audioFile = document.getElementById('audioFile');
+        const tooltip = document.getElementById('tooltip');
+
+        function init() {
+            initVisualization();
+            attachListeners();
+            updateCharCounter();
+        }
+
+        function initVisualization() {
+            const container = document.getElementById('galaxy-canvas');
+            width = container.offsetWidth;
+            height = container.offsetHeight;
+
+            svg = d3.select('#galaxy-canvas')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+
+            g = svg.append('g');
+
+            simulation = d3.forceSimulation()
+                .force('link', d3.forceLink().id(d => d.id).distance(150))
+                .force('charge', d3.forceManyBody().strength(-500))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(40));
+        }
+
+        function updateVisualization() {
+            const link = g.selectAll('.link')
+                .data(linksData, d => `${d.source.id || d.source}-${d.target.id || d.target}`);
+            link.exit().remove();
+            link.enter().append('line')
+                .attr('class', 'link')
+                .attr('stroke', '#444')
+                .attr('stroke-opacity', 0.3)
+                .merge(link);
+
+            const node = g.selectAll('.node')
+                .data(nodesData, d => d.id);
+            node.exit().remove();
+            const nodeEnter = node.enter().append('g')
+                .attr('class', 'node')
+                .call(d3.drag()
+                    .on('start', (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0.3).restart();
+                        d.fx = d.x;
+                        d.fy = d.y;
+                    })
+                    .on('drag', (event, d) => {
+                        d.fx = event.x;
+                        d.fy = event.y;
+                    })
+                    .on('end', (event, d) => {
+                        if (!event.active) simulation.alphaTarget(0);
+                        d.fx = null;
+                        d.fy = null;
+                    }));
+
+            nodeEnter.append('circle')
+                .attr('r', d => 15 + d.confidence * 25)
+                .attr('fill', d => EPISTEMOLOGY_COLORS[d.type] || '#666')
+                .attr('stroke', '#fff')
+                .attr('stroke-width', 2);
+
+            nodeEnter.merge(node)
+                .on('mouseover', (event, d) => {
+                    d3.select(event.currentTarget).select('circle')
+                        .attr('r', 15 + d.confidence * 30)
+                        .attr('stroke-width', 3);
+                    showTooltip(event, d);
+                })
+                .on('mouseout', (event, d) => {
+                    d3.select(event.currentTarget).select('circle')
+                        .attr('r', 15 + d.confidence * 25)
+                        .attr('stroke-width', 2);
+                    hideTooltip();
+                })
+                .on('mousemove', moveTooltip);
+
+            simulation.nodes(nodesData)
+                .on('tick', () => {
+                    g.selectAll('.link')
+                        .attr('x1', d => d.source.x)
+                        .attr('y1', d => d.source.y)
+                        .attr('x2', d => d.target.x)
+                        .attr('y2', d => d.target.y);
+                    g.selectAll('.node')
+                        .attr('transform', d => `translate(${d.x},${d.y})`);
+                });
+
+            simulation.force('link').links(linksData);
+            simulation.alpha(1).restart();
+        }
+
+        async function analyzeText() {
+            const text = textInput.value.trim();
+            if (!text) return alert('Please enter text');
+
+            try {
+                const res = await fetch(`${API_URL}/api/tag/text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text })
+                });
+                const data = await res.json();
+                if (data.success && data.node) {
+                    const tag = data.node.tags[0];
+                    nodesData.push({
+                        id: data.node.id,
+                        text: data.node.text,
+                        type: tag.type,
+                        confidence: tag.confidence,
+                        explanation: tag.explanation,
+                        x: width / 2 + (Math.random() - 0.5) * 200,
+                        y: height / 2 + (Math.random() - 0.5) * 200
+                    });
+                    if (nodesData.length > 1) {
+                        linksData.push({
+                            source: nodesData[nodesData.length - 2].id,
+                            target: nodesData[nodesData.length - 1].id
+                        });
+                    }
+                    updateVisualization();
+                    await updateStats();
+                    document.getElementById('processingTime').textContent = `${(data.processing_time * 1000).toFixed(0)}ms`;
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Analysis failed');
+            }
+        }
+
+        async function updateStats() {
+            try {
+                const res = await fetch(`${API_URL}/api/stats`);
+                const stats = await res.json();
+                document.getElementById('totalNodes').textContent = stats.total_nodes;
+                if (nodesData.length > 0) {
+                    const avg = nodesData.reduce((sum, n) => sum + n.confidence, 0) / nodesData.length;
+                    document.getElementById('avgConfidence').textContent = `${(avg * 100).toFixed(0)}%`;
+                }
+                if (Object.keys(stats.epistemology_distribution).length > 0) {
+                    const dominant = Object.entries(stats.epistemology_distribution)
+                        .sort((a, b) => b[1] - a[1])[0];
+                    document.getElementById('dominantType').textContent = dominant[0].split('-')[0];
+                }
+            } catch (e) {
+                console.error('Stats error:', e);
+            }
+        }
+
+        function showTooltip(event, d) {
+            document.getElementById('tooltipColor').style.background = EPISTEMOLOGY_COLORS[d.type];
+            document.getElementById('tooltipTitle').textContent = d.type;
+            document.getElementById('tooltipText').textContent = d.text.substring(0, 100) + '...';
+            document.getElementById('tooltipExplanation').textContent = d.explanation;
+            document.getElementById('tooltipConfidence').textContent = `${(d.confidence * 100).toFixed(0)}% confidence`;
+            tooltip.classList.add('active');
+            moveTooltip(event);
+        }
+
+        function moveTooltip(event) {
+            tooltip.style.left = (event.pageX + 15) + 'px';
+            tooltip.style.top = (event.pageY + 15) + 'px';
+        }
+
+        function hideTooltip() {
+            tooltip.classList.remove('active');
+        }
+
+        function updateCharCounter() {
+            charCounter.textContent = `${textInput.value.length} / 5000`;
+        }
+
+        function attachListeners() {
+            analyzeBtn.addEventListener('click', analyzeText);
+            clearBtn.addEventListener('click', () => {
+                textInput.value = '';
+                updateCharCounter();
+            });
+            textInput.addEventListener('input', updateCharCounter);
+            uploadZone.addEventListener('click', () => audioFile.click());
+            audioFile.addEventListener('change', (e) => {
+                if (e.target.files[0]) alert('Audio upload not implemented in demo');
+            });
+            document.querySelectorAll('.example-pill').forEach(pill => {
+                pill.addEventListener('click', () => {
+                    textInput.value = EXAMPLES[pill.dataset.type];
+                    updateCharCounter();
+                });
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
